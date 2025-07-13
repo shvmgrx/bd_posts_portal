@@ -2,96 +2,348 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BD Posts Search</title>
+  <title>BD Posts Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 min-h-screen">
-  <div class="max-w-4xl mx-auto py-8 px-4">
-    <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">🌍 BD Posts Search</h1>
-    <form id="searchForm" class="flex justify-center mb-8" onsubmit="return false;">
-      <input
-        id="searchInput"
-        type="text"
-        placeholder="Search by location or caption..."
-        class="w-full max-w-md px-4 py-2 rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        autofocus
-      />
-      <button
-        id="searchBtn"
-        type="submit"
-        class="bg-blue-500 hover:bg-blue-700 text-white px-5 py-2 rounded-r-lg font-semibold"
-      >Search</button>
-    </form>
-    <div id="resultsInfo" class="mb-4 text-center text-gray-500"></div>
-    <div id="spinner" class="flex justify-center py-6" style="display:none;">
-      <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-      </svg>
-    </div>
-    <div id="results" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-    <div id="noResults" class="text-center text-gray-400 mt-10" style="display:none;">No results found.</div>
-    <footer class="mt-14 text-center text-gray-400 text-xs pb-6">
-      BD Posts Search &middot; Powered by Supabase
-    </footer>
-  </div>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;}
+    body { font-family: 'Inter', sans-serif; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    /* Custom style for active sidebar link */
+    .sidebar-link.active {
+      background-color: #4f46e5; /* indigo-600 */
+      color: white;
+    }
   </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased">
+
+  <div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <div class="hidden md:flex flex-col w-64 bg-gray-800">
+      <div class="flex items-center justify-center h-16 bg-gray-900">
+        <span class="text-white font-bold uppercase">BD Posts Portal</span>
+      </div>
+      <div class="flex flex-col flex-1 overflow-y-auto">
+        <nav class="flex-1 px-2 py-4 bg-gray-800">
+          <a href="#" id="nav-search" class="sidebar-link flex items-center px-4 py-2 text-gray-100 hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            Search
+          </a>
+          <a href="#" id="nav-newest" class="sidebar-link flex items-center px-4 py-2 mt-2 text-gray-100 hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            Newest Posts
+          </a>
+          <a href="#" id="nav-most-liked" class="sidebar-link flex items-center px-4 py-2 mt-2 text-gray-100 hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+            Most Liked
+          </a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="flex flex-col flex-1 overflow-y-auto">
+      <div class="flex items-center justify-between h-16 bg-white border-b border-gray-200 p-4">
+        <h1 id="view-title" class="text-2xl font-semibold text-gray-800"></h1>
+        <div id="search-container" class="w-full max-w-lg hidden">
+            <form id="searchForm" class="flex items-center gap-2" onsubmit="return false;">
+              <input id="searchInput" type="text" placeholder="Search by location or caption..." class="w-full px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm" />
+              <select id="searchSort" class="flex-shrink-0 px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                <option value="timestamp.desc">Newest First</option>
+                <option value="timestamp.asc">Oldest First</option>
+                <option value="likesCount.desc">Most Liked</option>
+              </select>
+              <button type="submit" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-md font-semibold transition-colors shadow-sm">Search</button>
+            </form>
+        </div>
+      </div>
+      
+      <div class="p-4 md:p-8">
+        <div id="results-container" class="w-full">
+            <div id="resultsInfo" class="mb-4 text-gray-600"></div>
+            <div id="table-wrapper" class="bg-white rounded-lg shadow-md overflow-x-auto" style="display:none;">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Caption</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Likes</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="relative px-6 py-3"><span class="sr-only">View Post</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="results" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+            <div id="pagination-container" class="mt-6 flex justify-between items-center"></div>
+            <div id="status-message" class="text-center text-gray-500 mt-10" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const searchInput = document.getElementById("searchInput");
-    const searchBtn = document.getElementById("searchBtn");
-    const resultsDiv = document.getElementById("results");
-    const spinner = document.getElementById("spinner");
-    const resultsInfo = document.getElementById("resultsInfo");
-    const noResults = document.getElementById("noResults");
-    function renderResults(posts, query) {
-      resultsDiv.innerHTML = "";
-      if (!posts.length) {
-        resultsInfo.innerHTML = query ? `No results for "<span class="text-blue-700">${query}</span>"` : "";
-        noResults.style.display = "";
-        return;
-      }
-      noResults.style.display = "none";
-      resultsInfo.innerHTML = `Showing <b>${posts.length}</b> result${posts.length > 1 ? "s" : ""}${query ? ' for "<span class="text-blue-700">' + query + "</span>\"" : ""}`;
-      posts.forEach(p => {
-        const card = document.createElement("div");
-        card.className = "bg-white rounded-xl shadow-md p-4 flex flex-col";
-        card.innerHTML = `
-          <img src="${p.bucketMedia}" alt="" class="rounded-lg object-cover w-full h-40 mb-3">
-          <div class="text-gray-700 font-semibold text-sm mb-2 line-clamp-3">${(p.caption || "").slice(0, 120)}${(p.caption||"").length > 120 ? "..." : ""}</div>
-          <div class="flex justify-between items-center text-xs text-gray-500 mb-2">
-            <span>${p.locationName || ""}</span>
-            <a href="${p.url}" target="_blank" class="bg-pink-500 hover:bg-pink-700 text-white px-3 py-1 rounded font-bold text-xs transition">Visit Post</a>
-          </div>
+    // --- DOM Elements ---
+    const elements = {
+      nav: {
+        newest: document.getElementById('nav-newest'),
+        mostLiked: document.getElementById('nav-most-liked'),
+        search: document.getElementById('nav-search'),
+      },
+      viewTitle: document.getElementById('view-title'),
+      searchContainer: document.getElementById('search-container'),
+      searchForm: document.getElementById('searchForm'),
+      searchInput: document.getElementById('searchInput'),
+      searchSort: document.getElementById('searchSort'),
+      resultsTbody: document.getElementById('results'),
+      resultsInfo: document.getElementById('resultsInfo'),
+      tableWrapper: document.getElementById('table-wrapper'),
+      paginationContainer: document.getElementById('pagination-container'),
+      statusMessage: document.getElementById('status-message'),
+    };
+
+    // --- Application State ---
+    const state = {
+      view: 'search', // <-- Default view is now 'search'
+      query: '',
+      sortBy: 'timestamp',
+      order: 'desc',
+      page: 1,
+      perPage: 20,
+      totalPages: 1,
+      totalResults: 0,
+      isLoading: false,
+    };
+    
+    // --- UTILITY FUNCTIONS ---
+    function formatDate(isoString) {
+      if (!isoString) return 'N/A';
+      const date = new Date(isoString);
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    // --- RENDERING FUNCTIONS ---
+    function renderSkeletonLoader() {
+      elements.resultsTbody.innerHTML = "";
+      elements.tableWrapper.style.display = 'block';
+      for (let i = 0; i < 5; i++) {
+        const skeletonRow = document.createElement("tr");
+        skeletonRow.className = "animate-pulse";
+        skeletonRow.innerHTML = `
+          <td class="px-6 py-4"><div class="bg-gray-300 rounded-md h-16 w-16"></div></td>
+          <td class="px-6 py-4"><div class="space-y-2"><div class="h-4 bg-gray-300 rounded w-full"></div><div class="h-4 bg-gray-300 rounded w-5/6"></div></div></td>
+          <td class="px-6 py-4"><div class="h-4 bg-gray-300 rounded w-3/4"></div></td>
+          <td class="px-6 py-4"><div class="h-4 bg-gray-300 rounded w-1/2"></div></td>
+          <td class="px-6 py-4"><div class="h-4 bg-gray-300 rounded w-3/4"></div></td>
+          <td class="px-6 py-4 text-right"><div class="h-8 bg-gray-300 rounded-full w-24"></div></td>
         `;
-        resultsDiv.appendChild(card);
+        elements.resultsTbody.appendChild(skeletonRow);
+      }
+    }
+
+    function renderResults(posts) {
+      elements.resultsTbody.innerHTML = "";
+      if (!posts.length) return;
+
+      posts.forEach(p => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-gray-50 transition-colors duration-200";
+        row.innerHTML = `
+          <td class="px-6 py-4"><img src="${p.bucketMedia}" alt="Post image" loading="lazy" class="h-16 w-16 rounded-md object-cover shadow-sm"></td>
+          <td class="px-6 py-4"><p class="text-sm text-gray-600 max-w-sm line-clamp-3">${p.caption || '<span class="text-gray-400 italic">No caption</span>'}</p></td>
+          <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-800" title="${p.locationName || ''}">${p.locationName || '<span class="text-gray-400">Unknown</span>'}</div></td>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="flex items-center text-sm text-gray-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" /></svg>${(p.likesCount || 0).toLocaleString()}</span></td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(p.timestamp)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><a href="${p.url}" target="_blank" rel="noopener noreferrer" class="inline-block bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-full font-semibold text-xs transition-colors">View Post</a></td>
+        `;
+        elements.resultsTbody.appendChild(row);
       });
     }
-    async function doSearch() {
-      const query = searchInput.value.trim();
-      if (!query) {
-        resultsDiv.innerHTML = "";
-        resultsInfo.innerHTML = "";
-        noResults.style.display = "none";
-        return;
-      }
-      spinner.style.display = "";
-      resultsDiv.innerHTML = "";
-      noResults.style.display = "none";
-      resultsInfo.innerHTML = "";
-      try {
-        const res = await fetch("/search?q=" + encodeURIComponent(query));
-        const posts = await res.json();
-        renderResults(posts, query);
-      } catch {
-        resultsInfo.innerHTML = "<span class='text-red-500'>Error fetching results.</span>";
-      }
-      spinner.style.display = "none";
+
+    function renderPagination() {
+        elements.paginationContainer.innerHTML = "";
+        if (state.totalPages <= 1) return;
+
+        const startItem = (state.page - 1) * state.perPage + 1;
+        const endItem = Math.min(startItem + state.perPage - 1, state.totalResults);
+
+        const info = document.createElement('p');
+        info.className = 'text-sm text-gray-700';
+        info.innerHTML = `Showing <span class="font-medium">${startItem}</span> to <span class="font-medium">${endItem}</span> of <span class="font-medium">${state.totalResults}</span> results`;
+        
+        const buttons = document.createElement('div');
+        buttons.className = 'flex gap-2';
+
+        const prevButton = document.createElement('button');
+        prevButton.innerText = 'Previous';
+        prevButton.disabled = state.page === 1;
+        prevButton.className = "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed";
+        prevButton.onclick = () => { changePage(state.page - 1); };
+
+        const nextButton = document.createElement('button');
+        nextButton.innerText = 'Next';
+        nextButton.disabled = state.page === state.totalPages;
+        nextButton.className = "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed";
+        nextButton.onclick = () => { changePage(state.page + 1); };
+
+        buttons.appendChild(prevButton);
+        buttons.appendChild(nextButton);
+
+        elements.paginationContainer.appendChild(info);
+        elements.paginationContainer.appendChild(buttons);
     }
-    document.getElementById("searchForm").onsubmit = doSearch;
-    searchInput.onkeydown = function(e) { if(e.key === "Enter") { doSearch(); return false; } };
+    
+    function updateUI() {
+        // Update active sidebar link
+        document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+        if (state.view === 'newest') elements.nav.newest.classList.add('active');
+        if (state.view === 'most_liked') elements.nav.mostLiked.classList.add('active');
+        if (state.view === 'search') elements.nav.search.classList.add('active');
+
+        // Update view title and search bar visibility
+        elements.searchContainer.classList.toggle('hidden', state.view !== 'search');
+        elements.viewTitle.classList.toggle('hidden', state.view === 'search');
+        
+        if(state.view === 'newest') elements.viewTitle.innerText = 'Newest Posts';
+        if(state.view === 'most_liked') elements.viewTitle.innerText = 'Most Liked Posts';
+    }
+
+    function showStatusMessage(message) {
+        elements.tableWrapper.style.display = 'none';
+        elements.statusMessage.innerText = message;
+        elements.statusMessage.style.display = 'block';
+        elements.resultsInfo.innerHTML = '';
+        elements.paginationContainer.innerHTML = '';
+    }
+
+    // --- DATA FETCHING & STATE MANAGEMENT ---
+    async function fetchAndRenderPosts() {
+        if (state.isLoading) return;
+        state.isLoading = true;
+        
+        elements.statusMessage.style.display = 'none';
+        elements.paginationContainer.innerHTML = '';
+        if (state.view !== 'search' || (state.view === 'search' && state.query)) {
+            renderSkeletonLoader();
+        } else {
+            elements.tableWrapper.style.display = 'none';
+        }
+        
+        const url = new URL('/api/posts', window.location.origin);
+        url.searchParams.set('page', state.page);
+        url.searchParams.set('sort_by', state.sortBy);
+        url.searchParams.set('order', state.order);
+        if (state.query) url.searchParams.set('q', state.query);
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            
+            const data = await res.json();
+            
+            state.totalResults = data.total;
+            state.totalPages = Math.ceil(data.total / state.perPage);
+
+            renderResults(data.posts);
+            renderPagination();
+
+            if (data.posts.length > 0) {
+                elements.tableWrapper.style.display = 'block';
+                elements.statusMessage.style.display = 'none';
+            } else {
+                if (state.view === 'search' && state.query) {
+                   showStatusMessage(`No results found for "${state.query}".`);
+                } else {
+                   showStatusMessage('No posts found.');
+                }
+            }
+
+        } catch (err) {
+            console.error("Fetch error:", err);
+            showStatusMessage('Error fetching results. Please try again later.');
+        } finally {
+            state.isLoading = false;
+        }
+    }
+
+    function changePage(newPage) {
+      if (newPage > 0 && newPage <= state.totalPages) {
+        state.page = newPage;
+        fetchAndRenderPosts();
+      }
+    }
+    
+    function setView(view) {
+        state.view = view;
+        state.page = 1;
+        state.query = '';
+
+        if (view === 'newest') {
+            state.sortBy = 'timestamp';
+            state.order = 'desc';
+        } else if (view === 'most_liked') {
+            state.sortBy = 'likesCount';
+            state.order = 'desc';
+        }
+
+        updateUI();
+        
+        if (view !== 'search') {
+            fetchAndRenderPosts();
+        } else {
+            elements.searchInput.value = '';
+            elements.searchSort.value = 'timestamp.desc';
+            elements.tableWrapper.style.display = 'none';
+            elements.paginationContainer.innerHTML = '';
+            elements.statusMessage.style.display = 'block';
+            elements.statusMessage.innerText = 'Please enter a location to search.';
+            elements.searchInput.focus();
+        }
+    }
+
+    // --- EVENT LISTENERS ---
+    elements.nav.newest.addEventListener('click', (e) => { e.preventDefault(); setView('newest'); });
+    elements.nav.mostLiked.addEventListener('click', (e) => { e.preventDefault(); setView('most_liked'); });
+    elements.nav.search.addEventListener('click', (e) => { e.preventDefault(); setView('search'); });
+
+    elements.searchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const query = elements.searchInput.value.trim();
+        const sortValue = elements.searchSort.value;
+        
+        const [newSortBy, newOrder] = sortValue.split('.');
+
+        if (query === state.query && newSortBy === state.sortBy && newOrder === state.order) {
+            return; 
+        }
+
+        state.query = query;
+        state.page = 1; 
+        state.sortBy = newSortBy;
+        state.order = newOrder;
+
+        if (state.query) {
+            fetchAndRenderPosts();
+        } else {
+            showStatusMessage('Please enter a location to search.');
+        }
+    });
+    
+    elements.searchSort.addEventListener('change', () => {
+        if (elements.searchInput.value.trim()) {
+             elements.searchForm.dispatchEvent(new Event('submit', { cancelable: true }));
+        }
+    });
+
+    // --- INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', () => {
+        setView('search'); // <-- Start on the search view
+    });
+
   </script>
 </body>
 </html>
