@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BD Posts Search</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="max-w-4xl mx-auto py-8 px-4">
+    <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">🌍 BD Posts Search</h1>
+    <form id="searchForm" class="flex justify-center mb-8" onsubmit="return false;">
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="Search by location or caption..."
+        class="w-full max-w-md px-4 py-2 rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        autofocus
+      />
+      <button
+        id="searchBtn"
+        type="submit"
+        class="bg-blue-500 hover:bg-blue-700 text-white px-5 py-2 rounded-r-lg font-semibold"
+      >Search</button>
+    </form>
+    <div id="resultsInfo" class="mb-4 text-center text-gray-500"></div>
+    <div id="spinner" class="flex justify-center py-6" style="display:none;">
+      <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+    </div>
+    <div id="results" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    <div id="noResults" class="text-center text-gray-400 mt-10" style="display:none;">No results found.</div>
+    <footer class="mt-14 text-center text-gray-400 text-xs pb-6">
+      BD Posts Search &middot; Powered by Supabase
+    </footer>
+  </div>
+  <style>
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;}
+  </style>
+  <script>
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const resultsDiv = document.getElementById("results");
+    const spinner = document.getElementById("spinner");
+    const resultsInfo = document.getElementById("resultsInfo");
+    const noResults = document.getElementById("noResults");
+    function renderResults(posts, query) {
+      resultsDiv.innerHTML = "";
+      if (!posts.length) {
+        resultsInfo.innerHTML = query ? `No results for "<span class="text-blue-700">${query}</span>"` : "";
+        noResults.style.display = "";
+        return;
+      }
+      noResults.style.display = "none";
+      resultsInfo.innerHTML = `Showing <b>${posts.length}</b> result${posts.length > 1 ? "s" : ""}${query ? ' for "<span class="text-blue-700">' + query + "</span>\"" : ""}`;
+      posts.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl shadow-md p-4 flex flex-col";
+        card.innerHTML = `
+          <img src="${p.bucketMedia}" alt="" class="rounded-lg object-cover w-full h-40 mb-3">
+          <div class="text-gray-700 font-semibold text-sm mb-2 line-clamp-3">${(p.caption || "").slice(0, 120)}${(p.caption||"").length > 120 ? "..." : ""}</div>
+          <div class="flex justify-between items-center text-xs text-gray-500 mb-2">
+            <span>${p.locationName || ""}</span>
+            <a href="${p.url}" target="_blank" class="bg-pink-500 hover:bg-pink-700 text-white px-3 py-1 rounded font-bold text-xs transition">Visit Post</a>
+          </div>
+        `;
+        resultsDiv.appendChild(card);
+      });
+    }
+    async function doSearch() {
+      const query = searchInput.value.trim();
+      if (!query) {
+        resultsDiv.innerHTML = "";
+        resultsInfo.innerHTML = "";
+        noResults.style.display = "none";
+        return;
+      }
+      spinner.style.display = "";
+      resultsDiv.innerHTML = "";
+      noResults.style.display = "none";
+      resultsInfo.innerHTML = "";
+      try {
+        const res = await fetch("/search?q=" + encodeURIComponent(query));
+        const posts = await res.json();
+        renderResults(posts, query);
+      } catch {
+        resultsInfo.innerHTML = "<span class='text-red-500'>Error fetching results.</span>";
+      }
+      spinner.style.display = "none";
+    }
+    document.getElementById("searchForm").onsubmit = doSearch;
+    searchInput.onkeydown = function(e) { if(e.key === "Enter") { doSearch(); return false; } };
+  </script>
+</body>
+</html>
