@@ -44,7 +44,6 @@ def api_posts():
     Handles searching, sorting, pagination, and country filtering.
     """
     try:
-        # --- Get and validate request parameters ---
         q = request.args.get("q", "").strip()
         sort_by = request.args.get("sort_by", "timestamp")
         order = request.args.get("order", "desc")
@@ -52,7 +51,6 @@ def api_posts():
         country = request.args.get("country")
         per_page = 20
 
-        # --- Sanitize inputs to prevent abuse ---
         if sort_by not in ["timestamp", "likesCount", "commentsCount"]:
             sort_by = "timestamp"
         if order not in ["asc", "desc"]:
@@ -62,7 +60,6 @@ def api_posts():
 
         offset = (page - 1) * per_page
 
-        # --- Prepare Supabase API request ---
         headers = {
             "apikey": SUPABASE_ANON_KEY,
             "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
@@ -71,7 +68,7 @@ def api_posts():
         url = f"{SUPABASE_URL}/rest/v1/bd_posts"
 
         params = {
-            "select": "*,commentsCount", # Ensure commentsCount is selected
+            "select": "*,commentsCount",
             "order": f"{sort_by}.{order},id.asc",
             "limit": per_page,
             "offset": offset,
@@ -84,7 +81,6 @@ def api_posts():
             search_filter = f"(caption.ilike.*{q}*,locationName.ilike.*{q}*)"
             params["or"] = search_filter
 
-        # --- Execute the request ---
         r = requests.get(url, headers=headers, params=params)
         r.raise_for_status()
 
@@ -111,27 +107,34 @@ def api_posts():
         print(f"An unexpected error occurred: {e}")
         return jsonify({"error": "An internal server error occurred."}), 500
 
-# --- NEW ENDPOINT FOR TIMELINE ---
+# --- UPDATED TIMELINE ENDPOINT WITH PAGINATION ---
 @app.route("/api/timeline_posts")
 def api_timeline_posts():
     """
-    Fetches a lightweight list of all posts for the timeline view.
+    Fetches a lightweight list of posts for the timeline view with pagination.
     Only returns essential fields to keep the payload small and fast.
     """
     try:
+        # --- Get pagination parameters ---
+        page = int(request.args.get("page", 1))
+        per_page = 500 # Fetch 500 posts at a time as requested.
+        
+        if page < 1:
+            page = 1
+        
+        offset = (page - 1) * per_page
+
         headers = {
             "apikey": SUPABASE_ANON_KEY,
             "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
         }
-        # A high limit to fetch a good number of posts for the timeline.
-        # Adjust as needed based on performance and database size.
-        limit = 1000 
         url = f"{SUPABASE_URL}/rest/v1/bd_posts"
         
         params = {
             "select": "id,timestamp,guessed_country,bucketMedia,url",
             "order": "timestamp.desc",
-            "limit": limit
+            "limit": per_page,
+            "offset": offset,
         }
 
         r = requests.get(url, headers=headers, params=params)

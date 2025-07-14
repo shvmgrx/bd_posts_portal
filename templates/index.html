@@ -101,6 +101,7 @@
       
       <div id="timeline-view-container" class="p-4 md:p-8" style="display: none;">
         <div id="timeline-content" class="max-w-4xl mx-auto"></div>
+        <div id="timeline-loader-container" class="max-w-4xl mx-auto mt-8 text-center"></div>
         <div id="timeline-status-message" class="text-center text-slate-500 mt-10 py-10" style="display:none;"></div>
       </div>
 
@@ -167,6 +168,7 @@
         zoomMonthBtn: document.getElementById('timeline-zoom-month'),
         zoomDayBtn: document.getElementById('timeline-zoom-day'),
         content: document.getElementById('timeline-content'),
+        loaderContainer: document.getElementById('timeline-loader-container'),
         statusMessage: document.getElementById('timeline-status-message')
       }
     };
@@ -177,7 +179,9 @@
       timeline: {
         isLoading: false,
         posts: [],
-        granularity: 'month', // 'month' or 'day'
+        granularity: 'month',
+        page: 1,
+        canLoadMore: true
       }
     };
     
@@ -315,13 +319,13 @@
     }
 
     function renderTimeline() {
-        if (state.timeline.isLoading) return;
         const { posts, granularity } = state.timeline;
         const contentEl = elements.timeline.content;
+        
         contentEl.innerHTML = '';
         elements.timeline.statusMessage.style.display = 'none';
 
-        if (posts.length === 0) {
+        if (posts.length === 0 && !state.timeline.isLoading) {
             showStatusMessage(elements.timeline.statusMessage, 'No posts found to build a timeline.');
             return;
         }
@@ -343,26 +347,13 @@
             const groupPosts = groups[key];
             const groupContainer = document.createElement('div');
             groupContainer.className = 'relative timeline-group pb-8';
-
-            const header = `
-                <div class="flex items-center space-x-4">
-                    <div class="bg-indigo-500 rounded-full h-7 w-7 flex-shrink-0 z-10"></div>
-                    <h3 class="text-xl font-bold text-slate-800">${formatTimelineGroupHeader(key, granularity)}</h3>
-                </div>
-            `;
-
+            const header = `<div class="flex items-center space-x-4"><div class="bg-indigo-500 rounded-full h-7 w-7 flex-shrink-0 z-10"></div><h3 class="text-xl font-bold text-slate-800">${formatTimelineGroupHeader(key, granularity)}</h3></div>`;
             const itemsContainer = document.createElement('div');
             itemsContainer.className = 'pl-11 pt-6 flex flex-wrap gap-3';
-            
             groupPosts.forEach(post => {
-                const item = `
-                    <a href="${post.url}" target="_blank" rel="noopener noreferrer" class="block" title="${post.guessed_country || 'Unknown'} - ${new Date(post.timestamp).toLocaleDateString()}">
-                        <img src="${post.bucketMedia}" loading="lazy" class="h-12 w-12 rounded-full object-cover border-2 border-white shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-200">
-                    </a>
-                `;
+                const item = `<a href="${post.url}" target="_blank" rel="noopener noreferrer" class="block" title="${post.guessed_country || 'Unknown'} - ${new Date(post.timestamp).toLocaleDateString()}"><img src="${post.bucketMedia}" loading="lazy" class="h-12 w-12 rounded-full object-cover border-2 border-white shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-200"></a>`;
                 itemsContainer.innerHTML += item;
             });
-
             groupContainer.innerHTML = header;
             groupContainer.appendChild(itemsContainer);
             contentEl.appendChild(groupContainer);
@@ -375,33 +366,64 @@
             elements.timeline.zoomDayBtn.classList.add('bg-white', 'shadow');
             elements.timeline.zoomMonthBtn.classList.remove('bg-white', 'shadow');
         }
+
+        renderTimelineLoader();
     }
 
-    async function fetchAndRenderTimeline() {
-        if (state.timeline.posts.length > 0) {
-            renderTimeline();
-            return;
+    function renderTimelineLoader() {
+        const loaderContainer = elements.timeline.loaderContainer;
+        if (state.timeline.isLoading) {
+            loaderContainer.innerHTML = `<button class="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg opacity-75 cursor-not-allowed">Loading...</button>`;
+        } else if (state.timeline.canLoadMore && state.timeline.posts.length > 0) {
+            loaderContainer.innerHTML = `<button id="timeline-load-more-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-lg shadow-sm transition-colors">Load More</button>`;
+            document.getElementById('timeline-load-more-btn').addEventListener('click', fetchNextTimelinePage);
+        } else {
+            loaderContainer.innerHTML = '';
         }
+    }
+
+    async function fetchNextTimelinePage() {
+        if (state.timeline.isLoading) return;
+
         state.timeline.isLoading = true;
-        elements.timeline.content.innerHTML = '';
-        showStatusMessage(elements.timeline.statusMessage, 'Building timeline...');
+        renderTimelineLoader();
+        
+        if (state.timeline.page === 1) {
+            elements.timeline.content.innerHTML = '';
+            showStatusMessage(elements.timeline.statusMessage, 'Building timeline...');
+        }
 
         try {
-            const res = await fetch('/api/timeline_posts');
+            const url = new URL('/api/timeline_posts', window.location.origin);
+            url.searchParams.set('page', state.timeline.page);
+            
+            const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            const data = await res.json();
-            state.timeline.posts = data;
+            
+            const newPosts = await res.json();
+            
+            state.timeline.posts.push(...newPosts);
+            
+            const TIMELINE_PAGE_SIZE = 500;
+            if (newPosts.length < TIMELINE_PAGE_SIZE) {
+                state.timeline.canLoadMore = false;
+            }
+            
+            state.timeline.page++;
+            state.timeline.isLoading = false;
+            
             renderTimeline();
+
         } catch (err) {
             console.error("Timeline fetch error:", err);
             showStatusMessage(elements.timeline.statusMessage, 'Could not load timeline data.');
-        } finally {
             state.timeline.isLoading = false;
+            renderTimelineLoader();
         }
     }
 
     function setView(view) {
-        state.view = view; state.page = 1; state.query = ''; 
+        state.view = view;
         document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
         
         elements.postsViewContainer.style.display = 'none';
@@ -417,13 +439,19 @@
                 elements.viewTitle.innerText = 'Posts Timeline';
                 elements.timeline.controls.classList.remove('hidden');
                 elements.timeline.viewContainer.style.display = 'block';
-                fetchAndRenderTimeline();
+                
+                state.timeline.posts = [];
+                state.timeline.page = 1;
+                state.timeline.canLoadMore = true;
+                state.timeline.isLoading = false;
+                fetchNextTimelinePage();
                 break;
             case 'newest':
                 elements.nav.newest.classList.add('active');
                 elements.viewTitle.innerText = 'Newest Posts';
                 elements.postsViewContainer.style.display = 'block';
                 elements.postsGrid.style.display = 'grid';
+                state.page = 1;
                 state.sortBy = 'timestamp'; state.order = 'desc';
                 fetchAndRenderPosts();
                 break;
@@ -432,6 +460,7 @@
                 elements.viewTitle.innerText = 'Most Liked Posts';
                 elements.postsViewContainer.style.display = 'block';
                 elements.postsGrid.style.display = 'grid';
+                state.page = 1;
                 state.sortBy = 'likesCount'; state.order = 'desc';
                 fetchAndRenderPosts();
                 break;
@@ -570,30 +599,13 @@
         state.page = 1;
         state.sortBy = sortBy;
         state.order = order;
-        if (state.query) {
-            fetchAndRenderPosts();
-        } else {
-            elements.postsGrid.style.display = 'none';
-            showStatusMessage(elements.statusMessage, 'Please enter a location to search.');
-        }
+        if (state.query) { fetchAndRenderPosts(); } else { elements.postsGrid.style.display = 'none'; showStatusMessage(elements.statusMessage, 'Please enter a location to search.'); }
     });
     
-    elements.searchSort.addEventListener('change', () => {
-        if (elements.searchInput.value.trim()) {
-            elements.searchForm.dispatchEvent(new Event('submit', { cancelable: true }));
-        }
-    });
-    
-    elements.country.searchInput.addEventListener('input', (e) => {
-        state.countrySearchTerm = e.target.value;
-        renderCountryTiles();
-    });
-    
+    elements.searchSort.addEventListener('change', () => { if (elements.searchInput.value.trim()) { elements.searchForm.dispatchEvent(new Event('submit', { cancelable: true })); } });
+    elements.country.searchInput.addEventListener('input', (e) => { state.countrySearchTerm = e.target.value; renderCountryTiles(); });
     elements.modal.closeBtn.addEventListener('click', closeCountryModal);
-    elements.modal.container.addEventListener('click', (e) => {
-        if (e.target === elements.modal.container) { closeCountryModal(); }
-    });
-    
+    elements.modal.container.addEventListener('click', (e) => { if (e.target === elements.modal.container) { closeCountryModal(); } });
     elements.modal.sortSelect.addEventListener('change', (e) => {
         const [sortBy, order] = e.target.value.split('.');
         state.modal.sortBy = sortBy;
@@ -601,7 +613,7 @@
         state.modal.page = 1;
         fetchAndRenderModalPosts();
     });
-
+    
     elements.timeline.zoomMonthBtn.addEventListener('click', () => {
         if (state.timeline.granularity === 'month') return;
         state.timeline.granularity = 'month';
@@ -613,7 +625,7 @@
         state.timeline.granularity = 'day';
         renderTimeline();
     });
-    
+
     document.addEventListener('DOMContentLoaded', () => { setView('search'); });
   </script>
 </body>
