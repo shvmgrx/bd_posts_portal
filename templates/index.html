@@ -13,9 +13,19 @@
     .sidebar-link.active { background-color: #f1f5f9; color: #4f46e5; font-weight: 600; }
     .sidebar-link.active svg { color: #4f46e5; }
     body.modal-open { overflow: hidden; }
-    /* For custom line clamping */
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    /* Timeline styles */
+    .timeline-group::before {
+        content: '';
+        background-color: #e2e8f0;
+        width: 2px;
+        position: absolute;
+        left: 0.875rem; /* 14px */
+        top: 2.5rem; /* 40px */
+        bottom: -0.5rem; /* -8px */
+        transform: translateX(-50%);
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -31,6 +41,10 @@
           <a href="#" id="nav-search" class="sidebar-link flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors duration-200">
             <svg class="h-5 w-5 mr-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
             <span>Search</span>
+          </a>
+          <a href="#" id="nav-timeline" class="sidebar-link flex items-center px-4 py-3 mt-1 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors duration-200">
+            <svg class="h-5 w-5 mr-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M12 21V11.25m0 0l-3.75 3.75M12 11.25l3.75 3.75" /></svg>
+            <span>Timeline</span>
           </a>
           <a href="#" id="nav-newest" class="sidebar-link flex items-center px-4 py-3 mt-1 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors duration-200">
             <svg class="h-5 w-5 mr-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M-7.5 14.25h.008v.008H-7.5v-.008z" /></svg>
@@ -63,12 +77,16 @@
               <button type="submit" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Search</button>
             </form>
         </div>
+        <div id="timeline-controls" class="hidden">
+            <div class="p-1 bg-slate-200 rounded-lg flex items-center space-x-1">
+                <button id="timeline-zoom-month" class="px-3 py-1 text-sm font-semibold rounded-md transition-colors">By Month</button>
+                <button id="timeline-zoom-day" class="px-3 py-1 text-sm font-semibold rounded-md transition-colors">By Day</button>
+            </div>
+        </div>
       </header>
       
       <div id="posts-view-container" class="p-4 md:p-8">
-        <div id="posts-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Post cards will be injected here -->
-        </div>
+        <div id="posts-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
         <div id="pagination-container" class="mt-8 flex justify-center items-center"></div>
         <div id="status-message" class="text-center text-slate-500 mt-10 py-10" style="display:none;"></div>
       </div>
@@ -77,15 +95,18 @@
         <div class="mb-8">
           <input id="countrySearchInput" type="text" placeholder="Search for a country..." class="w-full max-w-lg px-4 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition" />
         </div>
-        <div id="country-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            <!-- Country tiles will be injected here -->
-        </div>
+        <div id="country-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"></div>
         <div id="country-status-message" class="text-center text-slate-500 mt-10 py-10" style="display:none;"></div>
       </div>
+      
+      <div id="timeline-view-container" class="p-4 md:p-8" style="display: none;">
+        <div id="timeline-content" class="max-w-4xl mx-auto"></div>
+        <div id="timeline-status-message" class="text-center text-slate-500 mt-10 py-10" style="display:none;"></div>
+      </div>
+
     </main>
   </div>
 
-  <!-- Country Posts Modal -->
   <div id="country-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center" style="display: none;">
     <div class="relative m-4 w-full max-w-7xl h-[90vh] shadow-2xl rounded-2xl bg-white flex flex-col">
       <div class="flex-shrink-0 flex justify-between items-center p-6 border-b border-slate-200">
@@ -131,26 +152,37 @@
 
 
   <script>
-    // --- ELEMENT SELECTORS ---
     const elements = {
-      nav: { newest: document.getElementById('nav-newest'), mostLiked: document.getElementById('nav-most-liked'), search: document.getElementById('nav-search'), byCountry: document.getElementById('nav-by-country'), },
+      nav: { newest: document.getElementById('nav-newest'), mostLiked: document.getElementById('nav-most-liked'), search: document.getElementById('nav-search'), byCountry: document.getElementById('nav-by-country'), timeline: document.getElementById('nav-timeline') },
       viewTitle: document.getElementById('view-title'),
       postsViewContainer: document.getElementById('posts-view-container'),
       postsGrid: document.getElementById('posts-grid'),
       searchContainer: document.getElementById('search-container'), searchForm: document.getElementById('searchForm'), searchInput: document.getElementById('searchInput'), searchSort: document.getElementById('searchSort'),
       paginationContainer: document.getElementById('pagination-container'), statusMessage: document.getElementById('status-message'),
       country: { viewContainer: document.getElementById('country-view-container'), searchInput: document.getElementById('countrySearchInput'), grid: document.getElementById('country-grid'), statusMessage: document.getElementById('country-status-message'), },
-      modal: { container: document.getElementById('country-modal'), title: document.getElementById('modal-title'), closeBtn: document.getElementById('modal-close-btn'), tableWrapper: document.getElementById('modal-table-wrapper'), tableBody: document.getElementById('modal-table-body'), pagination: document.getElementById('modal-pagination'), statusMessage: document.getElementById('modal-status-message'), sortSelect: document.getElementById('modal-sort-select'), }
+      modal: { container: document.getElementById('country-modal'), title: document.getElementById('modal-title'), closeBtn: document.getElementById('modal-close-btn'), tableWrapper: document.getElementById('modal-table-wrapper'), tableBody: document.getElementById('modal-table-body'), pagination: document.getElementById('modal-pagination'), statusMessage: document.getElementById('modal-status-message'), sortSelect: document.getElementById('modal-sort-select'), },
+      timeline: { 
+        viewContainer: document.getElementById('timeline-view-container'),
+        controls: document.getElementById('timeline-controls'),
+        zoomMonthBtn: document.getElementById('timeline-zoom-month'),
+        zoomDayBtn: document.getElementById('timeline-zoom-day'),
+        content: document.getElementById('timeline-content'),
+        statusMessage: document.getElementById('timeline-status-message')
+      }
     };
 
-    // --- APPLICATION STATE ---
     const state = {
       view: 'search', query: '', sortBy: 'timestamp', order: 'desc', page: 1, perPage: 20, totalPages: 1, totalResults: 0, isLoading: false, countries: [], countrySearchTerm: '',
-      modal: { isOpen: false, country: null, page: 1, totalPages: 1, totalResults: 0, isLoading: false, sortBy: 'timestamp', order: 'desc', }
+      modal: { isOpen: false, country: null, page: 1, totalPages: 1, totalResults: 0, isLoading: false, sortBy: 'timestamp', order: 'desc', },
+      timeline: {
+        isLoading: false,
+        posts: [],
+        granularity: 'month', // 'month' or 'day'
+      }
     };
     
-    // --- UTILITY & RENDER FUNCTIONS ---
     function formatDate(isoString) { if (!isoString) return 'N/A'; return new Date(isoString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+    
     function showStatusMessage(element, message) { element.innerHTML = `<p class="text-lg">${message}</p>`; element.style.display = 'block'; }
     
     function renderCardSkeletonLoader(container, count = 8) {
@@ -189,7 +221,6 @@
                             ${(p.likesCount || 0).toLocaleString()}
                         </span>
                         <span class="flex items-center text-slate-600">
-                            <!-- === NEW SVG ICON FOR COMMENTS === -->
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 mr-1.5 text-slate-500">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                             </svg>
@@ -203,7 +234,7 @@
         });
     }
 
-    function renderPostRows(posts, tbodyElement) { // Used for modal
+    function renderPostRows(posts, tbodyElement) {
         tbodyElement.innerHTML = "";
         if (!posts || !posts.length) return;
         posts.forEach(p => {
@@ -214,7 +245,6 @@
               <td class="px-6 py-4"><p class="text-sm text-slate-600 max-w-md line-clamp-3">${p.caption || '<span class="text-slate-400 italic">No caption</span>'}</p></td>
               <td class="px-6 py-4"><div class="text-sm font-medium text-slate-800" title="${p.locationName || ''}">${p.locationName || 'Unknown'}</div></td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">${(p.likesCount || 0).toLocaleString()}</td>
-              <!-- === ADDED ICON TO MODAL TABLE FOR CONSISTENCY === -->
               <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                 <span class="flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4 mr-1.5 text-slate-400">
@@ -275,32 +305,133 @@
         });
     }
 
-    // --- VIEW AND DATA LOGIC ---
+    function formatTimelineGroupHeader(key, granularity) {
+        const [year, month, day] = key.split('-');
+        const date = new Date(year, month - 1, day || 1);
+        if (granularity === 'month') {
+            return date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+        }
+        return date.toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function renderTimeline() {
+        if (state.timeline.isLoading) return;
+        const { posts, granularity } = state.timeline;
+        const contentEl = elements.timeline.content;
+        contentEl.innerHTML = '';
+        elements.timeline.statusMessage.style.display = 'none';
+
+        if (posts.length === 0) {
+            showStatusMessage(elements.timeline.statusMessage, 'No posts found to build a timeline.');
+            return;
+        }
+
+        const groups = posts.reduce((acc, post) => {
+            const date = new Date(post.timestamp);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const key = granularity === 'month' ? `${year}-${month}` : `${year}-${month}-${day}`;
+            if (!acc[key]) { acc[key] = []; }
+            acc[key].push(post);
+            return acc;
+        }, {});
+
+        const sortedGroupKeys = Object.keys(groups).sort().reverse();
+
+        sortedGroupKeys.forEach(key => {
+            const groupPosts = groups[key];
+            const groupContainer = document.createElement('div');
+            groupContainer.className = 'relative timeline-group pb-8';
+
+            const header = `
+                <div class="flex items-center space-x-4">
+                    <div class="bg-indigo-500 rounded-full h-7 w-7 flex-shrink-0 z-10"></div>
+                    <h3 class="text-xl font-bold text-slate-800">${formatTimelineGroupHeader(key, granularity)}</h3>
+                </div>
+            `;
+
+            const itemsContainer = document.createElement('div');
+            itemsContainer.className = 'pl-11 pt-6 flex flex-wrap gap-3';
+            
+            groupPosts.forEach(post => {
+                const item = `
+                    <a href="${post.url}" target="_blank" rel="noopener noreferrer" class="block" title="${post.guessed_country || 'Unknown'} - ${new Date(post.timestamp).toLocaleDateString()}">
+                        <img src="${post.bucketMedia}" loading="lazy" class="h-12 w-12 rounded-full object-cover border-2 border-white shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-200">
+                    </a>
+                `;
+                itemsContainer.innerHTML += item;
+            });
+
+            groupContainer.innerHTML = header;
+            groupContainer.appendChild(itemsContainer);
+            contentEl.appendChild(groupContainer);
+        });
+        
+        if (granularity === 'month') {
+            elements.timeline.zoomMonthBtn.classList.add('bg-white', 'shadow');
+            elements.timeline.zoomDayBtn.classList.remove('bg-white', 'shadow');
+        } else {
+            elements.timeline.zoomDayBtn.classList.add('bg-white', 'shadow');
+            elements.timeline.zoomMonthBtn.classList.remove('bg-white', 'shadow');
+        }
+    }
+
+    async function fetchAndRenderTimeline() {
+        if (state.timeline.posts.length > 0) {
+            renderTimeline();
+            return;
+        }
+        state.timeline.isLoading = true;
+        elements.timeline.content.innerHTML = '';
+        showStatusMessage(elements.timeline.statusMessage, 'Building timeline...');
+
+        try {
+            const res = await fetch('/api/timeline_posts');
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const data = await res.json();
+            state.timeline.posts = data;
+            renderTimeline();
+        } catch (err) {
+            console.error("Timeline fetch error:", err);
+            showStatusMessage(elements.timeline.statusMessage, 'Could not load timeline data.');
+        } finally {
+            state.timeline.isLoading = false;
+        }
+    }
+
     function setView(view) {
         state.view = view; state.page = 1; state.query = ''; 
         document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+        
         elements.postsViewContainer.style.display = 'none';
         elements.country.viewContainer.style.display = 'none';
+        elements.timeline.viewContainer.style.display = 'none';
         elements.searchContainer.classList.add('hidden');
+        elements.timeline.controls.classList.add('hidden');
         elements.viewTitle.classList.remove('hidden');
 
-        const showPostsView = () => {
-            elements.postsViewContainer.style.display = 'block';
-            elements.postsGrid.style.display = 'grid';
-        }
-
         switch(view) {
+            case 'timeline':
+                elements.nav.timeline.classList.add('active');
+                elements.viewTitle.innerText = 'Posts Timeline';
+                elements.timeline.controls.classList.remove('hidden');
+                elements.timeline.viewContainer.style.display = 'block';
+                fetchAndRenderTimeline();
+                break;
             case 'newest':
                 elements.nav.newest.classList.add('active');
                 elements.viewTitle.innerText = 'Newest Posts';
-                showPostsView();
+                elements.postsViewContainer.style.display = 'block';
+                elements.postsGrid.style.display = 'grid';
                 state.sortBy = 'timestamp'; state.order = 'desc';
                 fetchAndRenderPosts();
                 break;
             case 'most_liked':
                 elements.nav.mostLiked.classList.add('active');
                 elements.viewTitle.innerText = 'Most Liked Posts';
-                showPostsView();
+                elements.postsViewContainer.style.display = 'block';
+                elements.postsGrid.style.display = 'grid';
                 state.sortBy = 'likesCount'; state.order = 'desc';
                 fetchAndRenderPosts();
                 break;
@@ -385,7 +516,7 @@
 
     function openCountryModal(countryName) {
         state.modal.isOpen = true; state.modal.country = countryName; state.modal.page = 1;
-        state.modal.sortBy = 'timestamp'; state.modal.order = 'desc'; // Reset sort
+        state.modal.sortBy = 'timestamp'; state.modal.order = 'desc';
         elements.modal.sortSelect.value = 'timestamp.desc';
         elements.modal.container.style.display = 'flex';
         document.body.classList.add('modal-open');
@@ -425,7 +556,7 @@
         } catch (err) { console.error(err); elements.modal.tableWrapper.style.display = 'none'; showStatusMessage(elements.modal.statusMessage, 'Could not load posts.'); } finally { state.modal.isLoading = false; }
     }
     
-    // --- EVENT LISTENERS ---
+    elements.nav.timeline.addEventListener('click', (e) => { e.preventDefault(); setView('timeline'); });
     elements.nav.newest.addEventListener('click', (e) => { e.preventDefault(); setView('newest'); });
     elements.nav.mostLiked.addEventListener('click', (e) => { e.preventDefault(); setView('most_liked'); });
     elements.nav.search.addEventListener('click', (e) => { e.preventDefault(); setView('search'); });
@@ -467,12 +598,23 @@
         const [sortBy, order] = e.target.value.split('.');
         state.modal.sortBy = sortBy;
         state.modal.order = order;
-        state.modal.page = 1; // Reset to page 1 on sort change
+        state.modal.page = 1;
         fetchAndRenderModalPosts();
+    });
+
+    elements.timeline.zoomMonthBtn.addEventListener('click', () => {
+        if (state.timeline.granularity === 'month') return;
+        state.timeline.granularity = 'month';
+        renderTimeline();
+    });
+
+    elements.timeline.zoomDayBtn.addEventListener('click', () => {
+        if (state.timeline.granularity === 'day') return;
+        state.timeline.granularity = 'day';
+        renderTimeline();
     });
     
     document.addEventListener('DOMContentLoaded', () => { setView('search'); });
-
   </script>
 </body>
 </html>

@@ -53,7 +53,6 @@ def api_posts():
         per_page = 20
 
         # --- Sanitize inputs to prevent abuse ---
-        # Added 'commentsCount' to the list of valid sort options
         if sort_by not in ["timestamp", "likesCount", "commentsCount"]:
             sort_by = "timestamp"
         if order not in ["asc", "desc"]:
@@ -111,6 +110,42 @@ def api_posts():
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return jsonify({"error": "An internal server error occurred."}), 500
+
+# --- NEW ENDPOINT FOR TIMELINE ---
+@app.route("/api/timeline_posts")
+def api_timeline_posts():
+    """
+    Fetches a lightweight list of all posts for the timeline view.
+    Only returns essential fields to keep the payload small and fast.
+    """
+    try:
+        headers = {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+        }
+        # A high limit to fetch a good number of posts for the timeline.
+        # Adjust as needed based on performance and database size.
+        limit = 1000 
+        url = f"{SUPABASE_URL}/rest/v1/bd_posts"
+        
+        params = {
+            "select": "id,timestamp,guessed_country,bucketMedia,url",
+            "order": "timestamp.desc",
+            "limit": limit
+        }
+
+        r = requests.get(url, headers=headers, params=params)
+        r.raise_for_status()
+        posts = r.json()
+        return jsonify(posts)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error querying Supabase timeline: {e}")
+        return jsonify({"error": "Could not connect to the database."}), 500
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return jsonify({"error": "An internal server error occurred."}), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
