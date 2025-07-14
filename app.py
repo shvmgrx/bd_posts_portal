@@ -12,11 +12,36 @@ def index():
     """Renders the main application shell."""
     return render_template("index.html")
 
+@app.route("/api/countries")
+def api_countries():
+    """
+    Fetches a list of countries, their post counts, and a sample image
+    by calling a Supabase RPC function 'get_countries_with_counts'.
+    """
+    try:
+        headers = {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+        }
+        url = f"{SUPABASE_URL}/rest/v1/rpc/get_countries_with_counts"
+        r = requests.post(url, headers=headers)
+        r.raise_for_status()
+        countries = r.json()
+        return jsonify(countries)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error querying Supabase countries: {e}")
+        return jsonify({"error": "Could not connect to the database."}), 500
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return jsonify({"error": "An internal server error occurred."}), 500
+
+
 @app.route("/api/posts")
 def api_posts():
     """
     A unified API endpoint to fetch posts.
-    Handles searching, sorting, and pagination.
+    Handles searching, sorting, pagination, and country filtering.
     """
     try:
         # --- Get and validate request parameters ---
@@ -24,48 +49,48 @@ def api_posts():
         sort_by = request.args.get("sort_by", "timestamp")
         order = request.args.get("order", "desc")
         page = int(request.args.get("page", 1))
-        per_page = 20  # Define how many posts per page
+        country = request.args.get("country")
+        per_page = 20
 
         # --- Sanitize inputs to prevent abuse ---
-        if sort_by not in ["timestamp", "likesCount"]:
+        # Added 'commentsCount' to the list of valid sort options
+        if sort_by not in ["timestamp", "likesCount", "commentsCount"]:
             sort_by = "timestamp"
         if order not in ["asc", "desc"]:
             order = "desc"
         if page < 1:
             page = 1
 
-        # Calculate the offset for Supabase pagination
         offset = (page - 1) * per_page
 
         # --- Prepare Supabase API request ---
         headers = {
             "apikey": SUPABASE_ANON_KEY,
             "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
-            "Prefer": "count=exact"  # Request the total count for pagination
+            "Prefer": "count=exact"
         }
         url = f"{SUPABASE_URL}/rest/v1/bd_posts"
 
-        # Construct the final query parameters
         params = {
-            "select": "*",
-            "order": f"{sort_by}.{order},id.asc", # Secondary sort by id for stable ordering
+            "select": "*,commentsCount", # Ensure commentsCount is selected
+            "order": f"{sort_by}.{order},id.asc",
             "limit": per_page,
             "offset": offset,
         }
 
-        # Add the search filter if a query 'q' is provided
+        if country:
+            params['guessed_country'] = f'eq.{country}'
+
         if q:
-            # CORRECTED: The value for the 'or' parameter must start with '(', not 'or('.
             search_filter = f"(caption.ilike.*{q}*,locationName.ilike.*{q}*)"
             params["or"] = search_filter
 
         # --- Execute the request ---
         r = requests.get(url, headers=headers, params=params)
-        r.raise_for_status()  # Raise an exception for bad status codes
+        r.raise_for_status()
 
         posts = r.json()
 
-        # Extract total count from 'Content-Range' header (e.g., "0-19/500")
         content_range = r.headers.get("Content-Range")
         total_posts = 0
         if content_range:

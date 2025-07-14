@@ -11,11 +11,8 @@
   <style>
     body { font-family: 'Inter', sans-serif; }
     .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    /* Custom style for active sidebar link */
-    .sidebar-link.active {
-      background-color: #4f46e5; /* indigo-600 */
-      color: white;
-    }
+    .sidebar-link.active { background-color: #4f46e5; color: white; }
+    body.modal-open { overflow: hidden; }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased">
@@ -40,6 +37,12 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
             Most Liked
           </a>
+          <a href="#" id="nav-by-country" class="sidebar-link flex items-center px-4 py-2 mt-2 text-gray-100 hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h1a2 2 0 002-2v-1a2 2 0 012-2h1.945M7.884 5.068A9 9 0 1016.116 5.068M12 3v1m0 16v-1m-6.884-6.884l.707.707M18.116 18.116l-.707-.707m-12.292-.707l-.707.707M18.116 5.884l.707-.707" />
+            </svg>
+            By Country
+          </a>
         </nav>
       </div>
     </div>
@@ -61,94 +64,103 @@
         </div>
       </div>
       
-      <div class="p-4 md:p-8">
-        <div id="results-container" class="w-full">
-            <div id="resultsInfo" class="mb-4 text-gray-600"></div>
-            <div id="table-wrapper" class="bg-white rounded-lg shadow-md overflow-x-auto" style="display:none;">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Caption</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Likes</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th class="relative px-6 py-3"><span class="sr-only">View Post</span></th>
-                        </tr>
-                    </thead>
-                    <tbody id="results" class="bg-white divide-y divide-gray-200"></tbody>
-                </table>
-            </div>
-            <div id="pagination-container" class="mt-6 flex justify-between items-center"></div>
-            <div id="status-message" class="text-center text-gray-500 mt-10" style="display:none;"></div>
+      <div id="posts-view-container" class="p-4 md:p-8">
+        <div id="table-wrapper" class="bg-white rounded-lg shadow-md overflow-x-auto" style="display:none;">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Caption</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Likes</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="relative px-6 py-3"><span class="sr-only">View Post</span></th>
+                    </tr>
+                </thead>
+                <tbody id="results" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
         </div>
+        <div id="pagination-container" class="mt-6 flex justify-between items-center"></div>
+        <div id="status-message" class="text-center text-gray-500 mt-10" style="display:none;"></div>
+      </div>
+
+      <div id="country-view-container" class="p-4 md:p-8" style="display: none;">
+        <div class="mb-6">
+          <input id="countrySearchInput" type="text" placeholder="Search for a country..." class="w-full max-w-lg px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm" />
+        </div>
+        <div id="country-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+        <div id="country-status-message" class="text-center text-gray-500 mt-10" style="display:none;"></div>
       </div>
     </div>
   </div>
 
+  <!-- Country Posts Modal -->
+  <div id="country-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 backdrop-blur-sm overflow-y-auto h-full w-full z-50" style="display: none;">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white h-[70vh] flex flex-col">
+      <div class="flex-shrink-0 flex justify-between items-center pb-3 border-b">
+        <h3 id="modal-title" class="text-2xl font-bold text-gray-800"></h3>
+        <button id="modal-close-btn" class="text-gray-400 hover:text-gray-600">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      
+      <div class="flex-shrink-0 mt-4 flex justify-between items-center py-2 border-b">
+          <div id="modal-pagination" class="flex-grow"></div>
+          <div class="flex items-center gap-2">
+            <label for="modal-sort-select" class="text-sm font-medium text-gray-700">Sort by:</label>
+            <select id="modal-sort-select" class="px-3 py-1.5 text-sm rounded-md bg-white border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                <option value="timestamp.desc">Newest</option>
+                <option value="likesCount.desc">Most Liked</option>
+                <option value="commentsCount.desc">Most Commented</option>
+            </select>
+          </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto mt-2">
+          <div id="modal-table-wrapper" class="overflow-x-auto">
+               <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Caption</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Likes</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comments</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                          <th class="relative px-6 py-3"><span class="sr-only">View Post</span></th>
+                      </tr>
+                  </thead>
+                  <tbody id="modal-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+              </table>
+          </div>
+          <div id="modal-status-message" class="text-center text-gray-500 py-10" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+
   <script>
-    // --- DOM Elements ---
     const elements = {
-      nav: {
-        newest: document.getElementById('nav-newest'),
-        mostLiked: document.getElementById('nav-most-liked'),
-        search: document.getElementById('nav-search'),
-      },
+      nav: { newest: document.getElementById('nav-newest'), mostLiked: document.getElementById('nav-most-liked'), search: document.getElementById('nav-search'), byCountry: document.getElementById('nav-by-country'), },
       viewTitle: document.getElementById('view-title'),
-      searchContainer: document.getElementById('search-container'),
-      searchForm: document.getElementById('searchForm'),
-      searchInput: document.getElementById('searchInput'),
-      searchSort: document.getElementById('searchSort'),
-      resultsTbody: document.getElementById('results'),
-      resultsInfo: document.getElementById('resultsInfo'),
-      tableWrapper: document.getElementById('table-wrapper'),
-      paginationContainer: document.getElementById('pagination-container'),
-      statusMessage: document.getElementById('status-message'),
+      postsViewContainer: document.getElementById('posts-view-container'),
+      searchContainer: document.getElementById('search-container'), searchForm: document.getElementById('searchForm'), searchInput: document.getElementById('searchInput'), searchSort: document.getElementById('searchSort'),
+      resultsTbody: document.getElementById('results'), tableWrapper: document.getElementById('table-wrapper'), paginationContainer: document.getElementById('pagination-container'), statusMessage: document.getElementById('status-message'),
+      country: { viewContainer: document.getElementById('country-view-container'), searchInput: document.getElementById('countrySearchInput'), grid: document.getElementById('country-grid'), statusMessage: document.getElementById('country-status-message'), },
+      modal: { container: document.getElementById('country-modal'), title: document.getElementById('modal-title'), closeBtn: document.getElementById('modal-close-btn'), tableWrapper: document.getElementById('modal-table-wrapper'), tableBody: document.getElementById('modal-table-body'), pagination: document.getElementById('modal-pagination'), statusMessage: document.getElementById('modal-status-message'), sortSelect: document.getElementById('modal-sort-select'), }
     };
 
-    // --- Application State ---
     const state = {
-      view: 'search', // <-- Default view is now 'search'
-      query: '',
-      sortBy: 'timestamp',
-      order: 'desc',
-      page: 1,
-      perPage: 20,
-      totalPages: 1,
-      totalResults: 0,
-      isLoading: false,
+      view: 'search', query: '', sortBy: 'timestamp', order: 'desc', page: 1, perPage: 20, totalPages: 1, totalResults: 0, isLoading: false, countries: [], countrySearchTerm: '',
+      modal: { isOpen: false, country: null, page: 1, totalPages: 1, totalResults: 0, isLoading: false, sortBy: 'timestamp', order: 'desc', }
     };
     
-    // --- UTILITY FUNCTIONS ---
-    function formatDate(isoString) {
-      if (!isoString) return 'N/A';
-      const date = new Date(isoString);
-      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
+    function formatDate(isoString) { if (!isoString) return 'N/A'; return new Date(isoString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+    function renderSkeletonLoader(tbodyElement, count = 5) { /* ... (no changes) ... */ }
 
-    // --- RENDERING FUNCTIONS ---
-    function renderSkeletonLoader() {
-      elements.resultsTbody.innerHTML = "";
-      elements.tableWrapper.style.display = 'block';
-      for (let i = 0; i < 5; i++) {
-        const skeletonRow = document.createElement("tr");
-        skeletonRow.className = "animate-pulse";
-        skeletonRow.innerHTML = `
-          <td class="px-6 py-4"><div class="bg-gray-300 rounded-md h-16 w-16"></div></td>
-          <td class="px-6 py-4"><div class="space-y-2"><div class="h-4 bg-gray-300 rounded w-full"></div><div class="h-4 bg-gray-300 rounded w-5/6"></div></div></td>
-          <td class="px-6 py-4"><div class="h-4 bg-gray-300 rounded w-3/4"></div></td>
-          <td class="px-6 py-4"><div class="h-4 bg-gray-300 rounded w-1/2"></div></td>
-          <td class="px-6 py-4"><div class="h-4 bg-gray-300 rounded w-3/4"></div></td>
-          <td class="px-6 py-4 text-right"><div class="h-8 bg-gray-300 rounded-full w-24"></div></td>
-        `;
-        elements.resultsTbody.appendChild(skeletonRow);
-      }
-    }
-
-    function renderResults(posts) {
-      elements.resultsTbody.innerHTML = "";
-      if (!posts.length) return;
-
+    function renderPostRows(posts, tbodyElement) {
+      tbodyElement.innerHTML = "";
+      if (!posts || !posts.length) return;
       posts.forEach(p => {
         const row = document.createElement("tr");
         row.className = "hover:bg-gray-50 transition-colors duration-200";
@@ -157,193 +169,127 @@
           <td class="px-6 py-4"><p class="text-sm text-gray-600 max-w-sm line-clamp-3">${p.caption || '<span class="text-gray-400 italic">No caption</span>'}</p></td>
           <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-800" title="${p.locationName || ''}">${p.locationName || '<span class="text-gray-400">Unknown</span>'}</div></td>
           <td class="px-6 py-4 whitespace-nowrap"><span class="flex items-center text-sm text-gray-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" /></svg>${(p.likesCount || 0).toLocaleString()}</span></td>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="flex items-center text-sm text-gray-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.083-3.083A7.002 7.002 0 012 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM4.832 15.168l.843.492a6.003 6.003 0 008.652-8.652l-.492-.843A6.003 6.003 0 004.832 15.168z" clip-rule="evenodd" /></svg>${(p.commentsCount || 0).toLocaleString()}</span></td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(p.timestamp)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><a href="${p.url}" target="_blank" rel="noopener noreferrer" class="inline-block bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-full font-semibold text-xs transition-colors">View Post</a></td>
         `;
-        elements.resultsTbody.appendChild(row);
+        tbodyElement.appendChild(row);
       });
     }
 
-    function renderPagination() {
-        elements.paginationContainer.innerHTML = "";
-        if (state.totalPages <= 1) return;
-
-        const startItem = (state.page - 1) * state.perPage + 1;
-        const endItem = Math.min(startItem + state.perPage - 1, state.totalResults);
-
-        const info = document.createElement('p');
-        info.className = 'text-sm text-gray-700';
-        info.innerHTML = `Showing <span class="font-medium">${startItem}</span> to <span class="font-medium">${endItem}</span> of <span class="font-medium">${state.totalResults}</span> results`;
-        
-        const buttons = document.createElement('div');
-        buttons.className = 'flex gap-2';
-
-        const prevButton = document.createElement('button');
-        prevButton.innerText = 'Previous';
-        prevButton.disabled = state.page === 1;
-        prevButton.className = "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed";
-        prevButton.onclick = () => { changePage(state.page - 1); };
-
-        const nextButton = document.createElement('button');
-        nextButton.innerText = 'Next';
-        nextButton.disabled = state.page === state.totalPages;
-        nextButton.className = "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed";
-        nextButton.onclick = () => { changePage(state.page + 1); };
-
-        buttons.appendChild(prevButton);
-        buttons.appendChild(nextButton);
-
-        elements.paginationContainer.appendChild(info);
-        elements.paginationContainer.appendChild(buttons);
+    function renderPagination(container, { page, totalPages, totalResults, perPage, onPageChange }) {
+        container.innerHTML = "";
+        if (totalResults === 0) return;
+        const startItem = (page - 1) * perPage + 1;
+        const endItem = Math.min(startItem + perPage - 1, totalResults);
+        container.innerHTML = `
+          <div class="flex items-center gap-4">
+            <p class="text-sm text-gray-700">Showing <span class="font-medium">${startItem}-${endItem}</span> of <span class="font-medium">${totalResults.toLocaleString()}</span></p>
+            <div class="flex gap-2">
+              <button id="prevBtn" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Prev</button>
+              <button id="nextBtn" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+            </div>
+          </div>`;
+        const prevButton = container.querySelector('#prevBtn'); prevButton.disabled = page === 1; prevButton.onclick = () => onPageChange(page - 1);
+        const nextButton = container.querySelector('#nextBtn'); nextButton.disabled = page === totalPages; nextButton.onclick = () => onPageChange(page + 1);
     }
+    function showStatusMessage(element, message) { element.innerText = message; element.style.display = 'block'; }
+    function setView(view) { /* ... (no changes) ... */ }
+    async function fetchAndRenderPosts() { /* ... (no changes) ... */ }
+    async function fetchAndRenderCountries() { /* ... (no changes) ... */ }
     
-    function updateUI() {
-        // Update active sidebar link
-        document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
-        if (state.view === 'newest') elements.nav.newest.classList.add('active');
-        if (state.view === 'most_liked') elements.nav.mostLiked.classList.add('active');
-        if (state.view === 'search') elements.nav.search.classList.add('active');
+    function renderCountryTiles() {
+        elements.country.grid.innerHTML = '';
+        const searchTerm = state.countrySearchTerm.toLowerCase();
+        const filteredCountries = state.countries.filter(c => c.country_name.toLowerCase().includes(searchTerm));
 
-        // Update view title and search bar visibility
-        elements.searchContainer.classList.toggle('hidden', state.view !== 'search');
-        elements.viewTitle.classList.toggle('hidden', state.view === 'search');
-        
-        if(state.view === 'newest') elements.viewTitle.innerText = 'Newest Posts';
-        if(state.view === 'most_liked') elements.viewTitle.innerText = 'Most Liked Posts';
-    }
-
-    function showStatusMessage(message) {
-        elements.tableWrapper.style.display = 'none';
-        elements.statusMessage.innerText = message;
-        elements.statusMessage.style.display = 'block';
-        elements.resultsInfo.innerHTML = '';
-        elements.paginationContainer.innerHTML = '';
-    }
-
-    // --- DATA FETCHING & STATE MANAGEMENT ---
-    async function fetchAndRenderPosts() {
-        if (state.isLoading) return;
-        state.isLoading = true;
-        
-        elements.statusMessage.style.display = 'none';
-        elements.paginationContainer.innerHTML = '';
-        if (state.view !== 'search' || (state.view === 'search' && state.query)) {
-            renderSkeletonLoader();
-        } else {
-            elements.tableWrapper.style.display = 'none';
+        if (filteredCountries.length === 0) {
+            showStatusMessage(elements.country.statusMessage, searchTerm ? `No countries found matching "${state.countrySearchTerm}".` : 'No countries found.');
+            return;
         }
-        
+        elements.country.statusMessage.style.display = 'none';
+
+        filteredCountries.forEach(country => {
+            const tile = document.createElement('div');
+            tile.className = 'relative aspect-square bg-gray-300 rounded-lg shadow-md hover:shadow-xl overflow-hidden cursor-pointer group transition-shadow duration-300';
+            tile.style.backgroundImage = `url(${country.sample_image_url || ''})`;
+            tile.style.backgroundSize = 'cover';
+            tile.style.backgroundPosition = 'center';
+            
+            tile.innerHTML = `
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 p-4 text-white">
+                    <h4 class="text-lg font-bold truncate group-hover:underline">${country.country_name}</h4>
+                    <p class="text-sm opacity-90">${country.post_count.toLocaleString()} posts</p>
+                </div>
+            `;
+            tile.onclick = () => openCountryModal(country.country_name);
+            elements.country.grid.appendChild(tile);
+        });
+    }
+
+    function openCountryModal(countryName) {
+        state.modal.isOpen = true; state.modal.country = countryName; state.modal.page = 1;
+        state.modal.sortBy = 'timestamp'; state.modal.order = 'desc'; // Reset sort
+        elements.modal.sortSelect.value = 'timestamp.desc';
+        elements.modal.container.style.display = 'flex'; document.body.classList.add('modal-open');
+        elements.modal.title.innerText = `Posts from ${countryName}`;
+        fetchAndRenderModalPosts();
+    }
+    function closeCountryModal() { state.modal.isOpen = false; state.modal.country = null; elements.modal.container.style.display = 'none'; document.body.classList.remove('modal-open'); }
+
+    async function fetchAndRenderModalPosts() {
+        if (state.modal.isLoading) return;
+        state.modal.isLoading = true;
+        elements.modal.tableWrapper.style.display = 'block'; elements.modal.statusMessage.style.display = 'none';
+        elements.modal.pagination.innerHTML = ''; renderSkeletonLoader(elements.modal.tableBody, 10);
+
         const url = new URL('/api/posts', window.location.origin);
-        url.searchParams.set('page', state.page);
-        url.searchParams.set('sort_by', state.sortBy);
-        url.searchParams.set('order', state.order);
-        if (state.query) url.searchParams.set('q', state.query);
+        url.searchParams.set('country', state.modal.country);
+        url.searchParams.set('page', state.modal.page);
+        url.searchParams.set('sort_by', state.modal.sortBy);
+        url.searchParams.set('order', state.modal.order);
 
         try {
             const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            
+            if (!res.ok) throw new Error(`Modal fetch error! Status: ${res.status}`);
             const data = await res.json();
-            
-            state.totalResults = data.total;
-            state.totalPages = Math.ceil(data.total / state.perPage);
-
-            renderResults(data.posts);
-            renderPagination();
-
-            if (data.posts.length > 0) {
-                elements.tableWrapper.style.display = 'block';
-                elements.statusMessage.style.display = 'none';
-            } else {
-                if (state.view === 'search' && state.query) {
-                   showStatusMessage(`No results found for "${state.query}".`);
-                } else {
-                   showStatusMessage('No posts found.');
-                }
-            }
-
-        } catch (err) {
-            console.error("Fetch error:", err);
-            showStatusMessage('Error fetching results. Please try again later.');
-        } finally {
-            state.isLoading = false;
-        }
+            state.modal.totalResults = data.total;
+            state.modal.totalPages = Math.ceil(data.total / state.perPage);
+            renderPostRows(data.posts, elements.modal.tableBody);
+            renderPagination(elements.modal.pagination, { page: state.modal.page, totalPages: state.modal.totalPages, totalResults: state.modal.totalResults, perPage: state.perPage, onPageChange: (p) => { state.modal.page = p; fetchAndRenderModalPosts(); } });
+            if (data.posts.length === 0) { elements.modal.tableWrapper.style.display = 'none'; showStatusMessage(elements.modal.statusMessage, 'No posts found for this country.'); }
+        } catch (err) { console.error(err); elements.modal.tableWrapper.style.display = 'none'; showStatusMessage(elements.modal.statusMessage, 'Could not load posts.'); } finally { state.modal.isLoading = false; }
     }
 
-    function changePage(newPage) {
-      if (newPage > 0 && newPage <= state.totalPages) {
-        state.page = newPage;
-        fetchAndRenderPosts();
-      }
-    }
-    
-    function setView(view) {
-        state.view = view;
-        state.page = 1;
-        state.query = '';
+    elements.modal.sortSelect.addEventListener('change', (e) => {
+        const [sortBy, order] = e.target.value.split('.');
+        state.modal.sortBy = sortBy;
+        state.modal.order = order;
+        state.modal.page = 1; // Reset to page 1 on sort change
+        fetchAndRenderModalPosts();
+    });
 
-        if (view === 'newest') {
-            state.sortBy = 'timestamp';
-            state.order = 'desc';
-        } else if (view === 'most_liked') {
-            state.sortBy = 'likesCount';
-            state.order = 'desc';
-        }
-
-        updateUI();
-        
-        if (view !== 'search') {
-            fetchAndRenderPosts();
-        } else {
-            elements.searchInput.value = '';
-            elements.searchSort.value = 'timestamp.desc';
-            elements.tableWrapper.style.display = 'none';
-            elements.paginationContainer.innerHTML = '';
-            elements.statusMessage.style.display = 'block';
-            elements.statusMessage.innerText = 'Please enter a location to search.';
-            elements.searchInput.focus();
-        }
-    }
-
-    // --- EVENT LISTENERS ---
+    // --- Standard Event Listeners (no changes) ---
     elements.nav.newest.addEventListener('click', (e) => { e.preventDefault(); setView('newest'); });
     elements.nav.mostLiked.addEventListener('click', (e) => { e.preventDefault(); setView('most_liked'); });
     elements.nav.search.addEventListener('click', (e) => { e.preventDefault(); setView('search'); });
+    elements.nav.byCountry.addEventListener('click', (e) => { e.preventDefault(); setView('by_country'); });
+    elements.searchForm.addEventListener('submit', (e) => { e.preventDefault(); const query = elements.searchInput.value.trim(); const [sortBy, order] = elements.searchSort.value.split('.'); state.query = query; state.page = 1; state.sortBy = sortBy; state.order = order; if (state.query) { fetchAndRenderPosts(); } else { elements.tableWrapper.style.display = 'none'; showStatusMessage(elements.statusMessage, 'Please enter a location to search.'); } });
+    elements.searchSort.addEventListener('change', () => { if (elements.searchInput.value.trim()) { elements.searchForm.dispatchEvent(new Event('submit', { cancelable: true })); } });
+    elements.country.searchInput.addEventListener('input', (e) => { state.countrySearchTerm = e.target.value; renderCountryTiles(); });
+    elements.modal.closeBtn.addEventListener('click', closeCountryModal);
+    elements.modal.container.addEventListener('click', (e) => { if (e.target === elements.modal.container) { closeCountryModal(); } });
+    document.addEventListener('DOMContentLoaded', () => { setView('search'); });
 
-    elements.searchForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const query = elements.searchInput.value.trim();
-        const sortValue = elements.searchSort.value;
-        
-        const [newSortBy, newOrder] = sortValue.split('.');
-
-        if (query === state.query && newSortBy === state.sortBy && newOrder === state.order) {
-            return; 
-        }
-
-        state.query = query;
-        state.page = 1; 
-        state.sortBy = newSortBy;
-        state.order = newOrder;
-
-        if (state.query) {
-            fetchAndRenderPosts();
-        } else {
-            showStatusMessage('Please enter a location to search.');
-        }
-    });
-    
-    elements.searchSort.addEventListener('change', () => {
-        if (elements.searchInput.value.trim()) {
-             elements.searchForm.dispatchEvent(new Event('submit', { cancelable: true }));
-        }
-    });
-
-    // --- INITIALIZATION ---
-    document.addEventListener('DOMContentLoaded', () => {
-        setView('search'); // <-- Start on the search view
-    });
-
+    // Collapsed skeleton loader for brevity
+    renderSkeletonLoader = (tbodyElement, count = 5) => { tbodyElement.innerHTML = Array(count).fill(0).map(() => `<tr class="animate-pulse"><td class="px-6 py-4"><div class="bg-gray-300 rounded-md h-16 w-16"></div></td><td class="px-6 py-4"><div class="space-y-2"><div class="h-4 bg-gray-300 rounded w-full"></div><div class="h-4 bg-gray-300 rounded w-5/6"></div></div></td><td class="px-6 py-4"><div class="h-4 bg-gray-300 rounded w-3/4"></div></td><td class="px-6 py-4" colspan="2"><div class="h-4 bg-gray-300 rounded w-1/2"></div></td><td class="px-6 py-4"><div class="h-4 bg-gray-300 rounded w-3/4"></div></td><td class="px-6 py-4 text-right"><div class="h-8 bg-gray-300 rounded-full w-24"></div></td></tr>`).join(''); }
+    // Collapsed setView function for brevity
+    setView = (view) => { state.view = view; state.page = 1; state.query = ''; document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active')); elements.postsViewContainer.style.display = 'none'; elements.country.viewContainer.style.display = 'none'; elements.searchContainer.classList.add('hidden'); elements.viewTitle.classList.remove('hidden'); switch(view) { case 'newest': elements.nav.newest.classList.add('active'); elements.viewTitle.innerText = 'Newest Posts'; elements.postsViewContainer.style.display = 'block'; state.sortBy = 'timestamp'; state.order = 'desc'; fetchAndRenderPosts(); break; case 'most_liked': elements.nav.mostLiked.classList.add('active'); elements.viewTitle.innerText = 'Most Liked Posts'; elements.postsViewContainer.style.display = 'block'; state.sortBy = 'likesCount'; state.order = 'desc'; fetchAndRenderPosts(); break; case 'by_country': elements.nav.byCountry.classList.add('active'); elements.viewTitle.innerText = 'Posts by Country'; elements.country.viewContainer.style.display = 'block'; fetchAndRenderCountries(); break; case 'search': default: elements.nav.search.classList.add('active'); elements.viewTitle.classList.add('hidden'); elements.searchContainer.classList.remove('hidden'); elements.postsViewContainer.style.display = 'block'; elements.searchInput.value = ''; elements.searchSort.value = 'timestamp.desc'; elements.tableWrapper.style.display = 'none'; elements.paginationContainer.innerHTML = ''; showStatusMessage(elements.statusMessage, 'Please enter a location to search.'); elements.searchInput.focus(); break; } }
+    // Collapsed fetch posts for brevity
+    fetchAndRenderPosts = async () => { if (state.isLoading) return; state.isLoading = true; elements.statusMessage.style.display = 'none'; elements.paginationContainer.innerHTML = ''; elements.tableWrapper.style.display = 'block'; renderSkeletonLoader(elements.resultsTbody); const url = new URL('/api/posts', window.location.origin); url.searchParams.set('page', state.page); url.searchParams.set('sort_by', state.sortBy); url.searchParams.set('order', state.order); if (state.query) url.searchParams.set('q', state.query); try { const res = await fetch(url); if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`); const data = await res.json(); state.totalResults = data.total; state.totalPages = Math.ceil(data.total / state.perPage); renderPostRows(data.posts, elements.resultsTbody); renderPagination(elements.paginationContainer, { ...state, onPageChange: (p) => { state.page = p; fetchAndRenderPosts(); } }); if (data.posts.length === 0) { elements.tableWrapper.style.display = 'none'; showStatusMessage(elements.statusMessage, state.query ? `No results found for "${state.query}".` : 'No posts found.'); } } catch (err) { console.error("Fetch error:", err); elements.tableWrapper.style.display = 'none'; showStatusMessage(elements.statusMessage, 'Error fetching results. Please try again later.'); } finally { state.isLoading = false; } }
+    // Collapsed fetch countries for brevity
+    fetchAndRenderCountries = async () => { if (state.countries.length > 0) { renderCountryTiles(); return; } elements.country.statusMessage.style.display = 'block'; showStatusMessage(elements.country.statusMessage, 'Loading countries...'); try { const res = await fetch('/api/countries'); if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`); state.countries = await res.json(); elements.country.statusMessage.style.display = 'none'; renderCountryTiles(); } catch(err) { console.error("Error fetching countries:", err); showStatusMessage(elements.country.statusMessage, 'Could not load countries.'); } }
   </script>
 </body>
 </html>
